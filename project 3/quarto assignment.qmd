@@ -1,0 +1,159 @@
+---
+title: "Insights into Global Health Trends"
+author: "Yashika Sharma"
+published: "April 24, 2024"
+format: html
+editor: visual
+---
+
+## **Mapping Healthcare Accessibility**: Visualizing the Reach of Maternal and Child Health Services
+
+Healthcare indicators and socioeconomic factors are vital yardsticks in assessing a nation's well-being. They reflect access to *healthcare, disease prevalence, economic stability, education, and social support*. Understanding these factors enables policymakers to gauge public health and social welfare effectiveness, identify disparities, and formulate evidence-based strategies. In this study, we conduct a comparative analysis across countries to unravel the intertwined dynamics of healthcare and socioeconomics, aiming to inform informed decision-making for positive change.
+
+# **Global Distribution of Universal Health Coverage**
+
+The first , which is a world map showing the ***Universal Health Coverage Index for reproductive, maternal, newborn and child health interventions in 2020.*** When we look at the spatial distribution, a clear pattern emerges. Countries in Europe and the Americas like **Australia, Argentina** are achieving near universal coverage of over 90%. However, in certain regions like Africa and parts of Asia, coverage remains lower. For example, **Afghanistan and Angola** come in around 60-70%. This map gives us a good landscape of where more work needs to be done to strengthen health systems and ensure basic services are accessible to all women and children.
+
+```{r,warning=FALSE, message=FALSE, echo= FALSE}
+library(tidyverse)
+library(readr)
+library(sf)
+library(rnaturalearth)
+library(ggplot2)
+library(rnaturalearthdata)
+library(leaflet)
+library(dplyr)
+
+file1 <- read_csv("unicef_metadata.csv")
+file2 <- read_csv("unicef_indicator.csv")
+
+file3 <- right_join(file1, file2, by =("Country"))
+
+# Filter data for year 2020
+#data_2020 <- file2 %>% filter(year == 2020)
+selected_data <- head(file2,100)
+
+selected_data <- selected_data[complete.cases(selected_data), ]
+
+# Load world map
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Merge data with world map
+world_data <- left_join(world, selected_data, by = c("name" = "Country"))
+
+# Create color palette
+palette <- colorBin(palette = "viridis", domain = world_data$obs_value)
+
+# Create leaflet map
+leaflet(world_data) %>%
+  addTiles() %>%
+  addPolygons(
+    fillColor = ~palette(obs_value),
+    weight = 2,
+    opacity = 1,
+    color = "white",
+    dashArray = "3",
+    fillOpacity = 0.7,
+    highlight = highlightOptions(
+      weight = 5,
+      color = "red",
+      dashArray = "",
+      fillOpacity = 0.9
+    ),
+    label = ~paste0(name, ": ", obs_value),
+    labelOptions = labelOptions(
+      style = list("font-weight" = "bold", padding = "3px 8px"),
+      textsize = "15px",
+      direction = "auto"
+    )
+  ) %>%
+  addLegend(pal = palette, values = ~obs_value, opacity = 0.7, title = "Universal health coverage index for reproductive, maternal, newborn and child-health interventions")
+```
+
+# **Comparative Universal Health Coverage Index**
+
+Moving to the next visualization, This horizontal bar graph is titled "Universal Health Coverage Index for Maternal and Child Health by Country (2020)" and it compares the Universal Health Coverage Index for maternal and child health across various countries. Each horizontal bar represents a different country, and the length of the bar correlates to the magnitude of the UHC Index for maternal and child health in that country for the year 2020.
+
+The countries depicting the major healthcare are **United states, Germany and Japan**. Moreover, the bar for **Nigeria** is short and that for **VietNam** is long, it suggests that Nigeria had a lower level of universal health coverage for maternal and child health compared to Viet Nam in 2020. Conversely, countries with bars of similar lengths have comparable levels of universal health coverage for maternal and child health.
+
+This graph informs discussions on healthcare quality, access to maternal and child care, and overall health infrastructure in each of the listed countries. It also reflect the effectiveness of policies and programs aimed at achieving universal health coverage for maternal and child health. The visualization thus serves as a powerful tool for health policymakers, international health organizations, and governments to identify areas needing urgent attention and resource allocation.
+
+```{r,warning=FALSE, message=FALSE, echo= FALSE}
+#top20_file <- head(unique(file1),20)
+top20_file <- file1 %>%
+group_by(Country) %>%
+filter(row_number() == 1) %>%
+arrange(desc('Life expectancy at birth, total (years)')) %>% head(20)
+top20_file <- top20_file %>%
+rename('GDP' = 'GDP per capita (constant 2015 US$)')
+top20_file %>%
+ggplot(aes(x = Country, y = GDP)) +
+geom_col() +
+coord_flip() +
+labs(title = "Universal Health Coverage Index for Maternal and Child Health by Country (2020)", x = "Country", y = "Life expectancy at birth, total (years)")
+```
+
+# **Life Expectancy vs. Total Population Correlation**
+
+Shifting gear to the scatter plot relating life expectancy to total population. The x-axis represents total population, which is plotted on a logarithmic scale as indicated by the notation (e.g., 4e+07 for 400,000,000). The y-axis represents life expectancy in years.
+
+There is a cluster of points at the upper end of the population scale, indicating that many of the data points have smaller populations and a wide range of life expectancies. As the total population increases, the points spread out, but there is a general upward trend indicating that life expectancy tends to increase with population size. This trend is visually reinforced by a blue line, suggesting a linear regression line has been fitted to the data points. This line represents the average trend of life expectancy increasing as the total population increases.
+
+The spread of the data points also suggests there is variability in life expectancy that is not entirely explained by population size alone, as points deviate above and below the regression line.
+
+```{r,warning=FALSE, message=FALSE, echo= FALSE}
+# Filter for 2022 data
+#df <- df[df$Year == 2022, ]
+file_3 <- file3 %>%
+  sample_n(20)
+# Create scatter plot
+ggplot(file_3, aes(x = `Population, total`, y = `Life expectancy at birth, total (years)`)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Life expectancy vs. Total population",
+       x = "Total population",
+       y = "Life expectancy (years)") +
+  theme_bw()
+ 
+```
+
+# **Life Expectancy and GDP per Capita Trends Over Time**
+
+Finally, let's look at trends over time, this line graph plots both life expectancy and per capita GDP from 2010 to 2019.
+
+-   The life expectancy has generally been increasing over time, which is indicated by the upward trajectory of the line connecting the data points on the graph. This suggests improvements in healthcare, nutrition, and living conditions over the decade.
+
+-   The lines representing GDP per capita vary in color from year to year, indicating fluctuations in economic conditions. In years where the line appears steeper and changes to a warmer color (towards yellow), there is an indication of a significant increase in GDP per capita, implying economic growth.
+
+-   The gradient color shift from purple to yellow over the years doesn't follow a strict linear pattern, which means that GDP growth was not consistent year over year. However, the overall movement towards warmer colors suggests that there was some level of economic improvement over the decade.
+
+-   The absence of a direct correlation in steepness between the life expectancy line and the GDP per capita lines suggests that while economic growth may contribute to increased life expectancy, it is not the sole factor, and other elements such as healthcare advancements are at play.
+
+    The graph indicates that over the years from 2010 to 2019, life expectancy has generally increased even though GDP per capita has seen variable growth. This may imply that improvements in factors like healthcare are playing a crucial role in increasing longevity, alongside economic advancements.
+
+    ```{r,warning=FALSE, echo= FALSE}
+
+
+    library(dplyr)
+    library(ggplot2)
+
+
+    data <- file1 %>%
+      filter(`Life expectancy at birth, total (years)` > 0) %>%
+      select(Year, `Life expectancy at birth, total (years)`, `GDP per capita (constant 2015 US$)`) %>%
+      head(20)
+
+
+    ggplot(data, aes(x = Year, y = `Life expectancy at birth, total (years)`, color = `GDP per capita (constant 2015 US$)`)) +
+      geom_line() +
+      geom_point(size = 3) +
+      scale_color_gradient(low = "purple", high = "yellow") +
+      labs(title = "Life Expectancy vs GDP per Capita",
+           x = "Year",
+           y = "Life Expectancy (Years)",
+           color = "GDP per Capita") +
+      theme_minimal() +
+      theme(text = element_text(size = 12))
+    ```
+
+In conclusion, this study highlights the need for a multifaceted approach in addressing global health challenges. ***Policymakers, health organizations, and governments must consider a broad spectrum of factors, including economic policies, healthcare quality, and social support systems, to effectively enhance public health and ensure equitable access to healthcare services globally***. This holistic perspective is essential for fostering sustainable health improvements and achieving universal health coverage worldwide.
